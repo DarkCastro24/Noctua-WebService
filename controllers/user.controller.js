@@ -2,145 +2,142 @@ const User = require("../models/user.model");
 
 const controller = {};
 
-controller.getAll = async (req, res, next) => {
+// Método para obtener todos los usuarios
+controller.findAll = async (req, res, next) => {
     try {
-
-        const user = await User.find();
-        
-        if (!user) {
-            return res.status(404).send({ message: "User not found" });
-        }
-        res.json(user);
+        const users = await User.find();
+        return res.status(200).json({ users });
     } catch (error) {
         console.error(error);
-        res.status(500).send({ message: "Server error" });
+        return res.status(500).json({ error: 'Server internal error', error: error.message});
     }
 }
 
-controller.filterUsers = async (req, res, next) => {
+// Método para obtener un solo usuario por ID o nombre de usuario
+controller.getOne = async (req, res, next) => {
     try {
-        // Obtener el nombre del query string y crear una expresión regular
-        const name = req.body.nombre;
-        const regex = new RegExp(name, 'i'); // 'i' para hacer la búsqueda insensible a mayúsculas y minúsculas
-
-        // Buscar usuarios que coincidan con la expresión regular
-        const users = await User.find({ nombre: regex });
-
-        // Enviar respuesta con los usuarios encontrados
-        res.status(200).json(users);
-    } catch (error) {
-        // Manejar errores (por ejemplo, error de conexión a la base de datos)
-        res.status(500).json({ message: "Error al buscar usuarios", error: error.message });
-    }
-}
-
-controller.addSubject = async (req, res) => {
-    try {
-        const userId = req.params.userId;
-        const newSubject = req.body; 
-
-        const user = await User.findById(userId);
-
+        const username = req.params.id;  
+        let user;
+        // Valida si el parámetro es un ObjectId de MongoDB
+        if (username.match(/^[0-9a-fA-F]{24}$/)) { 
+            user = await User.findById(username);
+        } else {
+            user = await User.findOne({ username: username }); 
+        }
         if (!user) {
-            return res.status(404).send({ message: "User not found" });
+            return res.status(404).send({ message: "Usuario no encontrado" }); 
         }
-
-        const isSubjectExist = user.materias_interes.some(subject => 
-            subject.materia=== newSubject.materia); 
-
-        if (isSubjectExist) {
-            return res.status(400).send({ message: "Subject already exists" });
-        }
-
-        user.materias_interes.push(newSubject);
-        await user.save();
-
-        res.status(201).send(user.materias_interes);
+        res.status(200).json(user); 
     } catch (error) {
         console.error(error);
-        res.status(500).send({ message: "Server error" });
+        res.status(500).send({ message: "Server internal error", error: error.message }); 
     }
 };
 
-
-controller.getProfile = async (req, res, next) => {
+// Método para actualizar un usuario
+controller.update = async (req, res) => {
+    const id = req.params.id; // Extrae el ID del usuario de los parámetros
     try {
-        const userId = req.params.userId;
-        const user = await User.findById(userId).select();
-
-        if (!user) {
-            return res.status(404).send({ message: "User not found" });
+        const update = await User.findByIdAndUpdate(id, req.body, { new: true });
+        if (!update) {
+            return res.status(404).send({ message: "Usuario no encontrado" }); 
         }
-
-        res.json(user);
+        res.status(200).json(update);
     } catch (error) {
         console.error(error);
-        res.status(500).send({ message: "Server error" });
-    }
-}
-
-controller.updateProfile = async (req, res, next) => {
-    try {
-        const userId = req.params.userId;
-        const { carrera, num_materias, cum } = req.body; 
-
-        const updateData = {};
-        if (carrera !== undefined) updateData.carrera = carrera;
-        if (num_materias !== undefined) updateData.num_materias = num_materias;
-        if (cum !== undefined) updateData.cum = cum;
-
-        const updatedUser = await User.findByIdAndUpdate(
-            userId,
-            { $set: updateData },
-            { new: true }
-        );
-
-        if (!updatedUser) {
-            return res.status(404).send({ message: "User not found" });
-        }
-
-        res.status(200).send(updatedUser);
-    } catch (error) {
-        console.error(error);
-        res.status(500).send({ message: "Server error" });
-    }
-}
-
-controller.deleteSubject = async (req, res) => {
-    try {
-        const userId = req.params.userId;
-        const materiaId = req.params.subjectId; 
-
-        const user = await User.findById(userId);
-
-        if (!user) {
-            return res.status(404).send({ message: "User not found" });
-        }
-
-        user.materias_interes = user.materias_interes.filter(materia => materia._id.toString() !== materiaId);
-        await user.save();
-
-        res.status(200).send({ message: "Subject deleted"});
-    } catch (error) {
-        console.error(error);
-        res.status(500).send({ message: "Server error" });
+        res.status(400).json({ message: "Server internal error", error: error.message }); 
     }
 };
 
-controller.deleteUser = async (req, res) => {
+// Método para eliminar un usuario
+controller.delete = async (req, res) => {
     try {
-        const userId = req.params.userId;
-
-        const result = await User.findByIdAndDelete(userId);
-
+        const id = req.params.id; 
+        const result = await User.findByIdAndDelete(id);
         if (!result) {
-            return res.status(404).send({ message: "User not found" });
+            return res.status(404).send({ message: "Usuario no encontrado" }); 
         }
-
-        res.status(200).send({ message: "User successfully deleted" });
+        res.status(200).send({ message: "Usuario eliminado exitosamente" }); 
     } catch (error) {
         console.error(error);
-        res.status(500).send({ message: "Error deleting user" });
+        res.status(500).send({ message: "Server internal error", error: error.message }); 
+    }
+};
+
+// Método para buscar usuarios basándose en una cadena en su nombre o materias
+controller.find = async (req, res, next) => {
+    try {
+        const data = req.query.data; 
+        const regex = new RegExp(data, 'i'); 
+
+        let users = await User.find({ name: regex });
+        
+        if (users.length === 0) {
+            users = await User.find({ subjects: regex });
+        }
+
+        res.status(200).json(users); 
+    
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Server internal error", error: error.message }); 
+    }
+}
+
+controller.changePassword = async (req, res, next) => {
+    const id = req.params.id;
+    const { currentPassword, password: newPassword } = req.body;
+
+    if (!newPassword || !currentPassword) {
+        return res.status(400).send({ message: "Ambas contraseñas son requeridas" });
+    }
+
+    try {
+        const user = await User.findById(id);
+        if (!user) {
+            return res.status(404).send({ message: "Usuario no encontrado" });
+        }
+
+        if (!user.comparePassword(currentPassword)) {
+            return res.status(400).send({ message: "La contraseña actual no es correcta" });
+        }
+
+        user.password = newPassword; 
+        await user.save();
+
+        res.status(200).send({ user});
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Error interno del servidor", error: error.message });
+    }
+};
+
+controller.updateSubjects = async (req, res) => {
+    const id = req.params.id; // Extrae el ID del usuario de los parámetros
+    const { currentSubjects, allSubjects } = req.body;
+
+    if (!currentSubjects && !allSubjects) {
+        return res.status(400).send({ message: "Debe proporcionar currentSubjects o allSubjects para actualizar" });
+    }
+
+    try {
+        const user = await User.findById(id);
+        if (!user) {
+            return res.status(404).send({ message: "Usuario no encontrado" });
+        }
+
+        if (currentSubjects) {
+            user.currentSubjects = currentSubjects;
+        }
+        if (allSubjects) {
+            user.allSubjects = allSubjects;
+        }
+
+        await user.save();
+        res.status(200).json(user);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Server internal error", error: error.message });
     }
 };
 

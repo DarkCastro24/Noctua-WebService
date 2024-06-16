@@ -4,12 +4,11 @@ const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const database = require('./config/database.config');
 const cors = require('cors');
-const apiRouter = require("./routes/index.router");
+const apiRouter = require('./routes/index.router'); // Asegúrate de que la ruta es correcta
 
 const app = express();
 
 async function startServer() {
-
     // Middleware
     app.use(cors());
     app.use(logger('dev'));
@@ -17,13 +16,13 @@ async function startServer() {
     app.use(express.urlencoded({ extended: false }));
     app.use(cookieParser());
     app.use(express.static(path.join(__dirname, 'public')));
-    app.use("/api", apiRouter);
+    app.use('/api', apiRouter); // Asegúrate de que el prefijo /api es correcto
 
     try {
         await database.connect();
         console.log("Database connected successfully.");
 
-        const port = process.env.PORT || 3000;
+        const port = process.env.PORT || 3500;
         app.listen(port, () => {
             console.log(`Server running on port ${port}`);
         });
@@ -36,4 +35,5 @@ async function startServer() {
 startServer();
 
 module.exports = app;
+
 

@@ -2,15 +2,15 @@ const express = require("express");
 const router = express.Router();
 
 const authController = require("../controllers/auth.controller");
-const runValidation = require("../validators/index.middleware");
-const { registerValidator } = require("../validators/auth.validators");
 
+// http://localhost:3500/api/auth... 
+
+// server/api/auth/register
 router.post("/register", 
-    registerValidator,
-    runValidation,
     authController.register
 );
 
+// server/api/auth/login
 router.post("/login", 
     authController.login
 );

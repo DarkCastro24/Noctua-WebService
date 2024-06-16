@@ -1,34 +1,35 @@
 const express = require("express");
 const router = express.Router();
 
-const userController = require("../controllers/user.controller");
+const controller = require("../controllers/user.controller");
 
-// /api/user/... 
+// http://localhost:3500/api/user... 
+
+// server/api/user/search 
+router.get('/search/', 
+    controller.find);
+
+// server/api/user
 router.get("/", 
-    userController.getAll
-);
+    controller.findAll);
 
-router.post("/profile/:userId/", 
-    userController.addSubject
-);
+// server/api/user/id  
+router.get("/:id", 
+    controller.getOne);
 
-router.delete("/profile/:userId/:subjectId", 
-    userController.deleteSubject
-);
+// server/api/user/id  
+router.patch("/:id", 
+    controller.update);
 
-router.get("/profile/:userId", 
-    userController.getProfile
-);
+// server/api/user/id  
+router.delete("/:id", 
+    controller.delete);
 
-router.post('/filter', 
-    userController.filterUsers);
+// server/api/user/password/id  
+router.put("/password/:id", 
+    controller.changePassword);
 
-router.patch("/profile/:userId", 
-    userController.updateProfile
-);
-
-router.delete("/:userId", 
-    userController.deleteUser
-);
+router.put('/:id/subjects', 
+    controller.updateSubjects);
 
 module.exports = router;
